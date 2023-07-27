@@ -1,7 +1,28 @@
-$ echo "# My Repository" >> README.md
-$ git init
-$ git add .
-$ git commit -m "first commit"
-$ git branch -M main
-$ git remote add origin https://github.com/blitz2917/GithubActions
-$ git push -u origin main
+name: Java CI with Gradle
+
+on: #이벤트 트리거 조건지정 push 이벤트가 main브랜치에 발생할때 작업 실행
+  push:
+    branches: [ main ]
+
+jobs: #하나 이상의 작업 정의
+  build: #작업의 이름
+
+    runs-on: ubuntu-latest #작업실행하는 머신의 운영체제 지정
+
+    steps: #작업을 수행 단계 정의 name과 run으로 구성
+      - uses: actions/checkout@v2 # use : Github Actions에서 특정작업을 일종의 라이브러리처럼 마켓플레이스에 등록할 수 있게함
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew build # 해당단계가 실행될때 수행할 명령 지정
+      - name: Docker build
+        run: |
+          docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_PASSWORD }}
+          docker build -t spring-cicd . 
+          docker tag spring-cicd {도커 유저네임}/spring-cicd:${GITHUB_SHA::7}
+          docker push {도커 유저네임}/spring-cicd:${GITHUB_SHA::7}
